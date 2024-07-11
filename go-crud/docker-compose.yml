@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: mysql_container
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    ports:
+      - 1500:3306
+    volumes:
+      - ./mysql-data:/var/lib/mysql  # Mount the volume for database data persistence
+      - ./init.sql:/docker-entrypoint-initdb.d/initdb/init.sql:ro # Ensure correct volume mapping
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 10s
+      retries: 5 
+    networks:
+      - app-network
+
+  app:
+    build: .
+    container_name: go_app_container
+    ports:
+      - "9090:9090"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_HOST: mysql_container
+      DB_PORT: 3306
+      DB_USER: app_user
+      DB_PASSWORD: root
+      DB_NAME: crud_example
+      APP_HOST: go_app_container
+      APP_PORT: 9090
+    volumes:
+      - .:/app
+    networks:
+      - app-network
+
+volumes:
+  mysql-data:
+
+networks:
+  app-network:

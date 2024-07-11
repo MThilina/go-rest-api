@@ -1,0 +1,30 @@
+# Start with a base image containing the Go runtime
+FROM golang:1.21.5-alpine AS builder
+
+# Set the current working directory inside the container
+WORKDIR /app
+
+# Copy go.mod and go.sum to the working directory
+COPY go.mod go.sum ./
+
+# Download dependencies (this step will be cached if the go.mod and go.sum files haven't changed)
+RUN go mod download
+
+# Copy the source code from the current directory to the working directory inside the container
+COPY . .
+
+# Build the Go application
+RUN go build -o go-crud .
+
+# Start a new stage from scratch
+FROM alpine:latest
+
+
+# Copy the compiled executable from the builder stage to the new stage
+COPY --from=builder /app/go-crud .
+
+# Expose port 8080 (or any other port your application listens on)
+EXPOSE 9090
+
+# Command to run the executable
+CMD ["./go-crud"]
